@@ -129,4 +129,16 @@ public class EmployeePayrollDBService {
 			throw new CustomJDBCException(ExceptionType.UNABLE_TO_USE_STATEMENT);
 		}
 	}
+
+	public List<EmployeePayrollData> getEmployeePayrollDataInDateRange(LocalDate startDate, LocalDate endDate) throws CustomJDBCException {
+		String sql = String.format("select * from employee_payroll where start between cast('%s' as date) and cast('%s' as date);",
+				startDate.toString(), endDate.toString());
+		try (Connection connection = this.getConnection()) {
+			Statement statement = connection.createStatement();
+			ResultSet resultSet = statement.executeQuery(sql);
+			return this.getEmployeePayrollListFromResultSet(resultSet);
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
+		}
+	}
 }

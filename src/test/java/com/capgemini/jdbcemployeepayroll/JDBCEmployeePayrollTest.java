@@ -1,5 +1,6 @@
 package com.capgemini.jdbcemployeepayroll;
 
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +38,14 @@ public class JDBCEmployeePayrollTest {
 		boolean result = employeePayrollService.checkEmployeePayrollInSyncWithDB("Terissa");
 		Assert.assertTrue(result);
 	}
-
+	
+	@Test
+	public void givenEmployeePayrollInDB_WhenRetrievedOnDateRange_ShouldPassTheTest() throws CustomJDBCException {
+		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
+		LocalDate startDate = LocalDate.parse("2018-01-31");
+		LocalDate endDate = LocalDate.parse("2020-02-02");
+		List<EmployeePayrollData> employeeList = this.employeePayrollService.getEmployeePayrollDataInDateRange(startDate, endDate);
+		Assert.assertEquals(1, employeeList.size());
+	}
 }
 

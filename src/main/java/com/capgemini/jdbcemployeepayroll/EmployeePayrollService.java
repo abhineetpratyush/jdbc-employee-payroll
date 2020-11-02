@@ -1,5 +1,6 @@
 package com.capgemini.jdbcemployeepayroll;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public class EmployeePayrollService {
@@ -38,5 +39,9 @@ public class EmployeePayrollService {
 	public boolean checkEmployeePayrollInSyncWithDB(String name) throws CustomJDBCException {
 		List<EmployeePayrollData> employeePayrollDataList = employeePayrollDBService.getEmployeePayrollDataFromDB(name);
 		return employeePayrollDataList.get(0).equals(getEmployeePayrollData(name));
+	}
+
+	public List<EmployeePayrollData> getEmployeePayrollDataInDateRange(LocalDate startDate, LocalDate endDate) throws CustomJDBCException {
+		return this.employeePayrollDBService.getEmployeePayrollDataInDateRange(startDate, endDate);
 	}
 }
