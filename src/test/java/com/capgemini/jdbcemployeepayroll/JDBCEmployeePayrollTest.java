@@ -47,5 +47,13 @@ public class JDBCEmployeePayrollTest {
 		List<EmployeePayrollData> employeeList = this.employeePayrollService.getEmployeePayrollDataInDateRange(startDate, endDate);
 		Assert.assertEquals(1, employeeList.size());
 	}
+	
+	@Test
+	public void givenEmployeePayrollInDB_WhenSQLFunctionsPerformed_ShouldPassTheTest() throws CustomJDBCException {
+		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
+		QueryResultStructure result = this.employeePayrollService.performSQLFunction(SQLFunctionType.SUM);
+		Assert.assertEquals(4000000.00, result.maleGroupOutput, 0);
+		Assert.assertEquals(3000000.00, result.femaleGroupOutput, 0);
+	}
 }
 

@@ -12,6 +12,22 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+class QueryResultStructure{
+	public SQLFunctionType functionType;
+	public double maleGroupOutput;
+	public double femaleGroupOutput;
+
+	public QueryResultStructure(SQLFunctionType functionType, double maleGroupOutput, double femaleGroupOutput) {
+		this.functionType = functionType;
+		this.maleGroupOutput = maleGroupOutput;
+		this.femaleGroupOutput = femaleGroupOutput;
+	}
+}
+
+enum SQLFunctionType{
+	AVG, SUM, MIN, MAX, COUNT
+}
+
 public class EmployeePayrollDBService {
 	private static final Logger log = LogManager.getLogger(EmployeePayrollDBService.class);
 	private static EmployeePayrollDBService employeePayrollDBService;
@@ -28,7 +44,7 @@ public class EmployeePayrollDBService {
 	private Connection getConnection() throws CustomJDBCException {
 		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
 		String userName = "root";
-		String password = "";
+		String password = "Apr001seattle#";
 		Connection connection;
 		log.info("Connecting to database: " + jdbcURL);
 		try {
@@ -57,9 +73,10 @@ public class EmployeePayrollDBService {
 			while (resultSet.next()) {
 				int id = resultSet.getInt("id");
 				String employee_name = resultSet.getString("name");
+				String gender = resultSet.getString("gender");
 				double salary = resultSet.getDouble("salary");
 				LocalDate start = resultSet.getDate("start").toLocalDate();
-				employeePayrollList.add(new EmployeePayrollData(id, employee_name, salary, start));
+				employeePayrollList.add(new EmployeePayrollData(id, employee_name, gender, salary, start));
 			}
 			return employeePayrollList;
 		} catch (SQLException e) {
@@ -141,4 +158,23 @@ public class EmployeePayrollDBService {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
 	}
+
+	public QueryResultStructure performSQLFunction(SQLFunctionType functionType) throws CustomJDBCException {
+		String sql = String.format("select gender, %s(salary) from employee_payroll group by gender", functionType.toString());
+		try(Connection connection = this.getConnection()){
+			Statement statement = connection.createStatement();
+			ResultSet resultSet = statement.executeQuery(sql);
+			double maleGroupOutput = 0;
+			double femaleGroupOutput = 0;
+			while(resultSet.next()) {
+				if(resultSet.getString("gender").equals("M")) 
+					maleGroupOutput = resultSet.getDouble(String.format("%s(salary)", functionType.toString()));
+				else femaleGroupOutput = resultSet.getDouble(String.format("%s(salary)", functionType.toString()));
+			}
+			return new QueryResultStructure(functionType, maleGroupOutput, femaleGroupOutput);
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
+		}
+	}	
 }
+

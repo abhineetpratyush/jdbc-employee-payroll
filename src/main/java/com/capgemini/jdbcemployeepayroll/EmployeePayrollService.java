@@ -44,4 +44,8 @@ public class EmployeePayrollService {
 	public List<EmployeePayrollData> getEmployeePayrollDataInDateRange(LocalDate startDate, LocalDate endDate) throws CustomJDBCException {
 		return this.employeePayrollDBService.getEmployeePayrollDataInDateRange(startDate, endDate);
 	}
+
+	public QueryResultStructure performSQLFunction(SQLFunctionType functionType) throws CustomJDBCException {
+		return this.employeePayrollDBService.performSQLFunction(functionType);
+	}
 }
