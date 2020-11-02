@@ -44,7 +44,7 @@ public class EmployeePayrollDBService {
 	private Connection getConnection() throws CustomJDBCException {
 		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
 		String userName = "root";
-		String password = "Apr001seattle#";
+		String password = "";
 		Connection connection;
 		log.info("Connecting to database: " + jdbcURL);
 		try {
@@ -177,4 +177,3 @@ public class EmployeePayrollDBService {
 		}
 	}	
 }
-

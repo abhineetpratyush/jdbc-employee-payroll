@@ -56,4 +56,3 @@ public class JDBCEmployeePayrollTest {
 		Assert.assertEquals(3000000.00, result.femaleGroupOutput, 0);
 	}
 }
-
