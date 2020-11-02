@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 public class JDBCConnectivity {
 	private static final Logger log = LogManager.getLogger(JDBCConnectivity.class);
 	public static void main(String[] args) {
-		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service?useSSL=false";
+		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
 		String userName = "root";
 		String password = "";
 		Connection connection;
@@ -22,6 +22,7 @@ public class JDBCConnectivity {
 		}
 
 		listDrivers();
+
 
 		try {
 			log.info("Connecting to database: " + jdbcURL);
