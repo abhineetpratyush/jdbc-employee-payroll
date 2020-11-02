@@ -12,10 +12,7 @@ public class EmployeePayrollService {
 	public EmployeePayrollService() {
 		this.employeePayrollDBService = EmployeePayrollDBService.getInstance();
 	}
-	public EmployeePayrollService(List<EmployeePayrollData> employeePayrollList) {
-		this.employeePayrollList = employeePayrollList;
-	}
-
+	
 	public List<EmployeePayrollData> readEmployeePayrollData(IOService ioService) throws CustomJDBCException {
 		if(ioService.equals(IOService.DB_IO))
 			this.employeePayrollList = employeePayrollDBService.readData();

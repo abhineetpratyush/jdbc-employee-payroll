@@ -16,11 +16,12 @@ public class EmployeePayrollDBService {
 	private static final Logger log = LogManager.getLogger(EmployeePayrollDBService.class);
 	private static EmployeePayrollDBService employeePayrollDBService;
 	private PreparedStatement preparedStatement;
+	private PreparedStatement preparedStatemetForRetrieval;
 	private EmployeePayrollDBService() {}
 
 	public static EmployeePayrollDBService getInstance() {
-		if(employeePayrollDBService==null) {
-			employeePayrollDBService=new EmployeePayrollDBService();
+		if(employeePayrollDBService == null) {
+			employeePayrollDBService = new EmployeePayrollDBService();
 		}
 		return employeePayrollDBService;
 	}
@@ -41,28 +42,36 @@ public class EmployeePayrollDBService {
 
 	public List<EmployeePayrollData> readData() throws CustomJDBCException {
 		String sql = "select * from employee_payroll";
-		List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
 		try (Connection connection = this.getConnection()){
 			Statement statement = connection.createStatement();
 			ResultSet resultSet = statement.executeQuery(sql);
-			while(resultSet.next()) {
-				int id = resultSet.getInt("id");
-				String name = resultSet.getString("name");
-				double salary = resultSet.getDouble("salary");
-				LocalDate startDate = resultSet.getDate("start").toLocalDate();
-				employeePayrollList.add(new EmployeePayrollData(id, name, salary, startDate));
-			}
+			return this.getEmployeePayrollListFromResultSet(resultSet);
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
-		return employeePayrollList;
+	}
+
+	private List<EmployeePayrollData> getEmployeePayrollListFromResultSet(ResultSet resultSet) throws CustomJDBCException {
+		List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
+		try {
+			while (resultSet.next()) {
+				int id = resultSet.getInt("id");
+				String employee_name = resultSet.getString("name");
+				double salary = resultSet.getDouble("salary");
+				LocalDate start = resultSet.getDate("start").toLocalDate();
+				employeePayrollList.add(new EmployeePayrollData(id, employee_name, salary, start));
+			}
+			return employeePayrollList;
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.RESULT_SET_PROBLEM);
+		}
 	}
 
 	public int updateEmployeeData(String name, double salary) throws CustomJDBCException {
-		return this.updateEmployeePayrollDataUsingPrepredStatement(name, salary);
+		return this.updateEmployeePayrollDataUsingPreparedStatement(name, salary);
 	}
 
-	private int updateEmployeePayrollDataUsingPrepredStatement(String name, double salary) throws CustomJDBCException {
+	private int updateEmployeePayrollDataUsingPreparedStatement(String name, double salary) throws CustomJDBCException {
 		if(this.preparedStatement==null) {
 			this.prepareStatementForEmployeePayroll();
 		}
@@ -88,22 +97,27 @@ public class EmployeePayrollDBService {
 	}
 
 	public List<EmployeePayrollData> getEmployeePayrollDataFromDB(String name) throws CustomJDBCException  {
-		String sql = String.format("select * from employee_payroll where name = '%s'", name);
-		List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
-		try (Connection connection = this.getConnection()){
-			Statement statement = connection.createStatement();
-			ResultSet resultSet = statement.executeQuery(sql);
-			while(resultSet.next()) {
-				int id = resultSet.getInt("id");
-				String emp_name = resultSet.getString("name");
-				double salary = resultSet.getDouble("salary");
-				LocalDate start = resultSet.getDate("start").toLocalDate();
-				employeePayrollList.add(new EmployeePayrollData(id, emp_name, salary, start));
-			}
-			return employeePayrollList;
+		if (this.preparedStatemetForRetrieval == null) {
+			this.prepareStatementForEmployeePayrollDataRetrieval();
+		}
+		try (Connection connection = this.getConnection()) {
+			this.preparedStatemetForRetrieval.setString(1, name);
+			ResultSet resultSet = preparedStatemetForRetrieval.executeQuery();
+			return this.getEmployeePayrollListFromResultSet(resultSet);
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
+	}
+
+	private void prepareStatementForEmployeePayrollDataRetrieval() throws CustomJDBCException {
+		try {
+			Connection connection = this.getConnection();
+			String sql = "select * from employee_payroll where name = ?";
+			this.preparedStatemetForRetrieval = connection.prepareStatement(sql);
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
+		}
+
 	}
 
 	private int updateEmployeeDetailsUsingStatement(String name, double salary) throws CustomJDBCException {
