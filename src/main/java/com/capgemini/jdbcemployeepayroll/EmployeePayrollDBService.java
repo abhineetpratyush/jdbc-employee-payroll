@@ -2,7 +2,7 @@ package com.capgemini.jdbcemployeepayroll;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -14,7 +14,16 @@ import org.apache.logging.log4j.Logger;
 
 public class EmployeePayrollDBService {
 	private static final Logger log = LogManager.getLogger(EmployeePayrollDBService.class);
+	private static EmployeePayrollDBService employeePayrollDBService;
+	private PreparedStatement preparedStatement;
+	private EmployeePayrollDBService() {}
 
+	public static EmployeePayrollDBService getInstance() {
+		if(employeePayrollDBService==null) {
+			employeePayrollDBService=new EmployeePayrollDBService();
+		}
+		return employeePayrollDBService;
+	}
 	private Connection getConnection() throws CustomJDBCException {
 		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
 		String userName = "root";
@@ -50,9 +59,34 @@ public class EmployeePayrollDBService {
 	}
 
 	public int updateEmployeeData(String name, double salary) throws CustomJDBCException {
-		return this.updateEmployeeDetailsUsingStatement(name, salary);
+		return this.updateEmployeePayrollDataUsingPrepredStatement(name, salary);
 	}
-	
+
+	private int updateEmployeePayrollDataUsingPrepredStatement(String name, double salary) throws CustomJDBCException {
+		if(this.preparedStatement==null) {
+			this.prepareStatementForEmployeePayroll();
+		}
+		try {
+			preparedStatement.setDouble(1, salary);
+			preparedStatement.setString(2, name);
+			int rowsAffected=preparedStatement.executeUpdate();
+			return rowsAffected;
+		}catch(SQLException e) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_USE_PREPARED_STATEMENT);
+		}
+	}
+
+	private void prepareStatementForEmployeePayroll() throws CustomJDBCException {
+		try {
+			Connection connection = this.getConnection();
+			String sql = "update employee_payroll set salary = ? where name = ?";
+			this.preparedStatement = connection.prepareStatement(sql);
+		}catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_USE_PREPARED_STATEMENT);
+		}
+
+	}
+
 	public List<EmployeePayrollData> getEmployeePayrollDataFromDB(String name) throws CustomJDBCException  {
 		String sql = String.format("select * from employee_payroll where name = '%s'", name);
 		List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
@@ -78,7 +112,7 @@ public class EmployeePayrollDBService {
 			Statement statement = connection.createStatement();
 			return statement.executeUpdate(sql);
 		} catch (SQLException e) {
-			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_USE_STATEMENT);
 		}
 	}
 }
