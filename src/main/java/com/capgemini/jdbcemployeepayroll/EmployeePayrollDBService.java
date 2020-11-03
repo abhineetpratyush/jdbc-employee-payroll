@@ -178,7 +178,7 @@ public class EmployeePayrollDBService {
 		}
 	}
 
-	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException {
+	public EmployeePayrollData addEmployeeToPayrollUC7(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException {
 		int employeeId = -1;
 		EmployeePayrollData employeePayrollData = null;
 		String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
@@ -195,6 +195,40 @@ public class EmployeePayrollDBService {
 			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
 		}
 		return employeePayrollData;
+	}
+
+	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException  {
+		int employeeId = -1;
+		Connection connection = null;
+		EmployeePayrollData employeePayrollData = null;
+			connection = this.getConnection();
+			try(Statement statement = connection.createStatement()){
+				String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
+						"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
+				int rowAffected = statement.executeUpdate(sql, statement.RETURN_GENERATED_KEYS);
+				if(rowAffected == 1) {
+					ResultSet resultSet = statement.getGeneratedKeys();
+					if(resultSet.next()) employeeId = resultSet.getInt(1);
+				}
+			} catch (SQLException e) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+			}
+			try(Statement statement = connection.createStatement()){
+				double deductions = salary * 0.2;
+				double taxablePay = salary - deductions;
+				double tax = taxablePay * 0.1;
+				double netPay = salary - tax;
+				String sql = String.format("insert into payroll_details " + 
+											"(employee_id, basic_pay, deductions, taxable_pay, tax, net_pay) values " +
+											"(%s, %s, %s, %s, %s, %s)", employeeId, salary, deductions, taxablePay, tax, netPay);
+				int rowAffected = statement.executeUpdate(sql);
+				if(rowAffected == 1) {
+					employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
+				}
+			} catch(SQLException e) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+			}
+			return employeePayrollData;
 	}	
 }
 
