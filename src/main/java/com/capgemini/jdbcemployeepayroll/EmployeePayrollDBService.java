@@ -202,6 +202,11 @@ public class EmployeePayrollDBService {
 		Connection connection = null;
 		EmployeePayrollData employeePayrollData = null;
 			connection = this.getConnection();
+			try {
+				connection.setAutoCommit(false);
+			} catch (SQLException e1) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_SET_AUTO_COMMIT);
+			}
 			try(Statement statement = connection.createStatement()){
 				String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
 						"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
@@ -211,6 +216,11 @@ public class EmployeePayrollDBService {
 					if(resultSet.next()) employeeId = resultSet.getInt(1);
 				}
 			} catch (SQLException e) {
+				try {
+					connection.rollback();
+				} catch (SQLException e1) {
+					throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
+				}
 				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
 			}
 			try(Statement statement = connection.createStatement()){
@@ -226,7 +236,24 @@ public class EmployeePayrollDBService {
 					employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
 				}
 			} catch(SQLException e) {
+				try {
+					connection.rollback();
+				} catch (SQLException e1) {
+					throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
+				}
 				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+			} 
+			try {
+				connection.commit();
+			} catch (SQLException e) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_COMMIT);
+			} finally {
+				if(connection != null)
+					try {
+						connection.close();
+					} catch (SQLException e) {
+						throw new CustomJDBCException(ExceptionType.UNABLE_TO_CLOSE_CONNECTION);
+					}
 			}
 			return employeePayrollData;
 	}	
