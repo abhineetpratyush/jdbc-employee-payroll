@@ -48,4 +48,8 @@ public class EmployeePayrollService {
 	public QueryResultStructure performSQLFunction(SQLFunctionType functionType) throws CustomJDBCException {
 		return this.employeePayrollDBService.performSQLFunction(functionType);
 	}
+
+	public void addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException {
+		employeePayrollList.add(employeePayrollDBService.addEmployeeToPayroll(name, salary, startDate, gender));
+	}
 }

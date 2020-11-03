@@ -20,7 +20,7 @@ public class JDBCEmployeePayrollTest {
 	@Test
 	public void givenEmployeePayrollInDB_WhenRetrieved_ShouldMatchEmployeeCount() throws CustomJDBCException {
 		List<EmployeePayrollData> employeePayrollData = employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
-		Assert.assertEquals(3, employeePayrollData.size());
+		Assert.assertEquals(4, employeePayrollData.size());
 	}
 
 	@Test
@@ -52,7 +52,15 @@ public class JDBCEmployeePayrollTest {
 	public void givenEmployeePayrollInDB_WhenSQLFunctionsPerformed_ShouldPassTheTest() throws CustomJDBCException {
 		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
 		QueryResultStructure result = this.employeePayrollService.performSQLFunction(SQLFunctionType.SUM);
-		Assert.assertEquals(4000000.00, result.maleGroupOutput, 0);
+		Assert.assertEquals(9000000.00, result.maleGroupOutput, 0);
 		Assert.assertEquals(3000000.00, result.femaleGroupOutput, 0);
+	}
+	
+	@Test
+	public void givenNewEmployee_WhenAdded_ShouldSyncWithDB() throws CustomJDBCException {
+		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
+		employeePayrollService.addEmployeeToPayroll("Mark", 5000000.00, LocalDate.now(), "M");
+		boolean result = employeePayrollService.checkEmployeePayrollInSyncWithDB("Mark");
+		Assert.assertTrue(result);
 	}
 }

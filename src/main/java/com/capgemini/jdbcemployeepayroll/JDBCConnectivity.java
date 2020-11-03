@@ -12,9 +12,9 @@ import org.apache.logging.log4j.Logger;
 public class JDBCConnectivity {
 	private static final Logger log = LogManager.getLogger(JDBCConnectivity.class);
 	public static void main(String[] args) throws CustomJDBCException {
-		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
+		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service?useSSL=false";
 		String userName = "root";
-		String password = "";
+		String password = "abcd4321";
 		Connection connection;
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");

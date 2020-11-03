@@ -1,6 +1,7 @@
 package com.capgemini.jdbcemployeepayroll;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,9 +43,9 @@ public class EmployeePayrollDBService {
 		return employeePayrollDBService;
 	}
 	private Connection getConnection() throws CustomJDBCException {
-		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service2?useSSL=false";
+		String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service?useSSL=false";
 		String userName = "root";
-		String password = "";
+		String password = "abcd4321";
 		Connection connection;
 		log.info("Connecting to database: " + jdbcURL);
 		try {
@@ -175,5 +176,37 @@ public class EmployeePayrollDBService {
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
+	}
+
+	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException {
+		int employeeId = -1;
+		EmployeePayrollData employeePayrollData = null;
+		String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
+									"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
+		try(Connection connection = this.getConnection()){
+			Statement statement = connection.createStatement();
+			int rowAffected = statement.executeUpdate(sql, statement.RETURN_GENERATED_KEYS);
+			if(rowAffected == 1) {
+				ResultSet resultSet = statement.getGeneratedKeys();
+				if(resultSet.next()) employeeId = resultSet.getInt(1);
+			}
+			employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+		}
+		return employeePayrollData;
 	}	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
