@@ -58,9 +58,12 @@ public class EmployeePayrollDBService {
 	}
 
 	public List<EmployeePayrollData> readData() throws CustomJDBCException {
-		String sql = "select * from employee_payroll";
+		String sql = "select * from employee_payroll inner join company_details on employee_payroll.company_id "
+				+ "= company_details.company_id inner join department_employee on employee_payroll.id = "
+				+ "department_employee.employee_id inner join department on department.department_id = "
+				+ "department_employee.department_id;"; 
 		try (Connection connection = this.getConnection()){
-			Statement statement = connection.createStatement();
+			Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 			ResultSet resultSet = statement.executeQuery(sql);
 			return this.getEmployeePayrollListFromResultSet(resultSet);
 		} catch (SQLException e) {
@@ -71,14 +74,40 @@ public class EmployeePayrollDBService {
 	private List<EmployeePayrollData> getEmployeePayrollListFromResultSet(ResultSet resultSet) throws CustomJDBCException {
 		List<EmployeePayrollData> employeePayrollList = new ArrayList<>();
 		try {
-			while (resultSet.next()) {
-				int id = resultSet.getInt("id");
-				String employee_name = resultSet.getString("name");
-				String gender = resultSet.getString("gender");
-				double salary = resultSet.getDouble("salary");
-				LocalDate start = resultSet.getDate("start").toLocalDate();
-				employeePayrollList.add(new EmployeePayrollData(id, employee_name, gender, salary, start));
-			}
+			List<String> departmentNames = new ArrayList<>();
+			resultSet.next();
+			int referenceEmployeeId = resultSet.getInt("id");
+			resultSet.absolute(0);
+					while (resultSet.next()) {
+						int id = resultSet.getInt("id");
+						if(id != referenceEmployeeId) {
+							int rowNumber = resultSet.getRow() - 1;
+							resultSet.absolute(rowNumber);
+							int employeeId = resultSet.getInt("id");
+							String employeeName = resultSet.getString("name");
+							String gender = resultSet.getString("gender");
+							double salary = resultSet.getDouble("salary");
+							LocalDate start = resultSet.getDate("start").toLocalDate();
+							String companyName = resultSet.getString("company_name");
+							int companyId = resultSet.getInt("company_id");
+							employeePayrollList.add(new EmployeePayrollData(employeeId, employeeName, gender, salary, start, companyName, companyId, departmentNames));
+							referenceEmployeeId = id;
+							departmentNames.clear();
+						}
+						else {
+							departmentNames.add(resultSet.getString("department_name"));
+						}
+					}
+					int rowNumber = resultSet.getRow() - 1;
+					resultSet.absolute(rowNumber);
+					int employeeId = resultSet.getInt("id");
+					String employeeName = resultSet.getString("name");
+					String gender = resultSet.getString("gender");
+					double salary = resultSet.getDouble("salary");
+					LocalDate start = resultSet.getDate("start").toLocalDate();
+					String companyName = resultSet.getString("company_name");
+					int companyId = resultSet.getInt("company_id");
+					employeePayrollList.add(new EmployeePayrollData(employeeId, employeeName, gender, salary, start, companyName, companyId, departmentNames));
 			return employeePayrollList;
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.RESULT_SET_PROBLEM);
@@ -107,7 +136,7 @@ public class EmployeePayrollDBService {
 		try {
 			Connection connection = this.getConnection();
 			String sql = "update employee_payroll set salary = ? where name = ?";
-			this.preparedStatement = connection.prepareStatement(sql);
+			this.preparedStatement = connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 		}catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.UNABLE_TO_USE_PREPARED_STATEMENT);
 		}
@@ -130,8 +159,12 @@ public class EmployeePayrollDBService {
 	private void prepareStatementForEmployeePayrollDataRetrieval() throws CustomJDBCException {
 		try {
 			Connection connection = this.getConnection();
-			String sql = "select * from employee_payroll where name = ?";
-			this.preparedStatemetForRetrieval = connection.prepareStatement(sql);
+			String sql = "select * from employee_payroll inner join company_details on "
+					+ "employee_payroll.company_id = company_details.company_id inner join "
+					+ "department_employee on employee_payroll.id = department_employee.employee_id "
+					+ "inner join department on department.department_id = "
+					+ "department_employee.department_id where name = ?";
+			this.preparedStatemetForRetrieval = connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
@@ -149,10 +182,15 @@ public class EmployeePayrollDBService {
 	}
 
 	public List<EmployeePayrollData> getEmployeePayrollDataInDateRange(LocalDate startDate, LocalDate endDate) throws CustomJDBCException {
-		String sql = String.format("select * from employee_payroll where start between cast('%s' as date) and cast('%s' as date);",
+		String sql = String.format("select * from employee_payroll inner "
+				+ "join company_details on employee_payroll.company_id = "
+				+ "company_details.company_id inner join department_employee on "
+				+ "employee_payroll.id = department_employee.employee_id inner join "
+				+ "department on department.department_id = department_employee.department_id "
+				+ "where start between cast('%s' as date) and cast('%s' as date);",
 				startDate.toString(), endDate.toString());
 		try (Connection connection = this.getConnection()) {
-			Statement statement = connection.createStatement();
+			Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
 			ResultSet resultSet = statement.executeQuery(sql);
 			return this.getEmployeePayrollListFromResultSet(resultSet);
 		} catch (SQLException e) {
@@ -182,7 +220,7 @@ public class EmployeePayrollDBService {
 		int employeeId = -1;
 		EmployeePayrollData employeePayrollData = null;
 		String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
-									"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
+				"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
 		try(Connection connection = this.getConnection()){
 			Statement statement = connection.createStatement();
 			int rowAffected = statement.executeUpdate(sql, statement.RETURN_GENERATED_KEYS);
@@ -197,65 +235,65 @@ public class EmployeePayrollDBService {
 		return employeePayrollData;
 	}
 
-	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException  {
+	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender, int companyId) throws CustomJDBCException  {
 		int employeeId = -1;
 		Connection connection = null;
 		EmployeePayrollData employeePayrollData = null;
-			connection = this.getConnection();
+		connection = this.getConnection();
+		try {
+			connection.setAutoCommit(false);
+		} catch (SQLException e1) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_SET_AUTO_COMMIT);
+		}
+		try(Statement statement = connection.createStatement()){
+			String sql = String.format("insert into employee_payroll (name, gender, salary, start, company_id) " +
+					"values ('%s', '%s', %s, '%s', %s)", name, gender, salary, Date.valueOf(startDate), companyId);
+			int rowAffected = statement.executeUpdate(sql, statement.RETURN_GENERATED_KEYS);
+			if(rowAffected == 1) {
+				ResultSet resultSet = statement.getGeneratedKeys();
+				if(resultSet.next()) employeeId = resultSet.getInt(1);
+			}
+		} catch (SQLException e) {
 			try {
-				connection.setAutoCommit(false);
+				connection.rollback();
 			} catch (SQLException e1) {
-				throw new CustomJDBCException(ExceptionType.UNABLE_TO_SET_AUTO_COMMIT);
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
 			}
-			try(Statement statement = connection.createStatement()){
-				String sql = String.format("insert into employee_payroll (name, gender, salary, start) " +
-						"values ('%s', '%s', %s, '%s')", name, gender, salary, Date.valueOf(startDate));
-				int rowAffected = statement.executeUpdate(sql, statement.RETURN_GENERATED_KEYS);
-				if(rowAffected == 1) {
-					ResultSet resultSet = statement.getGeneratedKeys();
-					if(resultSet.next()) employeeId = resultSet.getInt(1);
-				}
-			} catch (SQLException e) {
-				try {
-					connection.rollback();
-				} catch (SQLException e1) {
-					throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
-				}
-				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+		}
+		try(Statement statement = connection.createStatement()){
+			double deductions = salary * 0.2;
+			double taxablePay = salary - deductions;
+			double tax = taxablePay * 0.1;
+			double netPay = salary - tax;
+			String sql = String.format("insert into payroll_details " + 
+					"(employee_id, basic_pay, deductions, taxable_pay, tax, net_pay) values " +
+					"(%s, %s, %s, %s, %s, %s)", employeeId, salary, deductions, taxablePay, tax, netPay);
+			int rowAffected = statement.executeUpdate(sql);
+			if(rowAffected == 1) {
+				employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
 			}
-			try(Statement statement = connection.createStatement()){
-				double deductions = salary * 0.2;
-				double taxablePay = salary - deductions;
-				double tax = taxablePay * 0.1;
-				double netPay = salary - tax;
-				String sql = String.format("insert into payroll_details " + 
-											"(employee_id, basic_pay, deductions, taxable_pay, tax, net_pay) values " +
-											"(%s, %s, %s, %s, %s, %s)", employeeId, salary, deductions, taxablePay, tax, netPay);
-				int rowAffected = statement.executeUpdate(sql);
-				if(rowAffected == 1) {
-					employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
-				}
-			} catch(SQLException e) {
-				try {
-					connection.rollback();
-				} catch (SQLException e1) {
-					throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
-				}
-				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
-			} 
+		} catch(SQLException e) {
 			try {
-				connection.commit();
-			} catch (SQLException e) {
-				throw new CustomJDBCException(ExceptionType.UNABLE_TO_COMMIT);
-			} finally {
-				if(connection != null)
-					try {
-						connection.close();
-					} catch (SQLException e) {
-						throw new CustomJDBCException(ExceptionType.UNABLE_TO_CLOSE_CONNECTION);
-					}
+				connection.rollback();
+			} catch (SQLException e1) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
 			}
-			return employeePayrollData;
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+		} 
+		try {
+			connection.commit();
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_COMMIT);
+		} finally {
+			if(connection != null)
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					throw new CustomJDBCException(ExceptionType.UNABLE_TO_CLOSE_CONNECTION);
+				}
+		}
+		return employeePayrollData;
 	}	
 }
 

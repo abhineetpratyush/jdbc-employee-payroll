@@ -49,7 +49,7 @@ public class EmployeePayrollService {
 		return this.employeePayrollDBService.performSQLFunction(functionType);
 	}
 
-	public void addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender) throws CustomJDBCException {
-		employeePayrollList.add(employeePayrollDBService.addEmployeeToPayroll(name, salary, startDate, gender));
+	public void addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender, int companyId) throws CustomJDBCException {
+		employeePayrollList.add(employeePayrollDBService.addEmployeeToPayroll(name, salary, startDate, gender, companyId));
 	}
 }

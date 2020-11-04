@@ -1,6 +1,7 @@
 package com.capgemini.jdbcemployeepayroll;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class EmployeePayrollData {
 	public int id;
@@ -8,6 +9,9 @@ public class EmployeePayrollData {
 	public double salary;
 	public LocalDate startDate;
 	public String gender;
+	public String companyName;
+	public int companyId;
+	public List<String> departmentNames;
 	
 	public EmployeePayrollData(Integer id, String name, Double salary) {
 		this.id = id;
@@ -23,6 +27,13 @@ public class EmployeePayrollData {
 	public EmployeePayrollData(int id, String name, String gender, double salary, LocalDate startDate) {
 		this(id, name, salary, startDate);
 		this.gender = gender;
+	}
+	
+	public EmployeePayrollData(int id, String name,String gender, double salary, LocalDate startDate, String companyName, int companyId, List<String> departmentNames) {
+		this(id, name, gender, salary, startDate);
+		this.companyId = companyId;
+		this.companyName = companyName;
+		this.departmentNames = departmentNames;
 	}
 
 	public String toString() {
