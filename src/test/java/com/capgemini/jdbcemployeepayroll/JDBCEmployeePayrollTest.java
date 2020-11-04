@@ -8,7 +8,7 @@ import org.junit.Test;
 import com.capgemini.jdbcemployeepayroll.EmployeePayrollService.IOService;
 
 public class JDBCEmployeePayrollTest {
-	
+
 	public EmployeePayrollService employeePayrollService;
 
 	@Before
@@ -38,7 +38,7 @@ public class JDBCEmployeePayrollTest {
 		boolean result = employeePayrollService.checkEmployeePayrollInSyncWithDB("Terissa");
 		Assert.assertTrue(result);
 	}
-	
+
 	@Test
 	public void givenEmployeePayrollInDB_WhenRetrievedOnDateRange_ShouldPassTheTest() throws CustomJDBCException {
 		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
@@ -47,20 +47,28 @@ public class JDBCEmployeePayrollTest {
 		List<EmployeePayrollData> employeeList = this.employeePayrollService.getEmployeePayrollDataInDateRange(startDate, endDate);
 		Assert.assertEquals(1, employeeList.size());
 	}
-	
+
 	@Test
 	public void givenEmployeePayrollInDB_WhenSQLFunctionsPerformed_ShouldPassTheTest() throws CustomJDBCException {
 		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
 		QueryResultStructure result = this.employeePayrollService.performSQLFunction(SQLFunctionType.SUM);
-		Assert.assertEquals(4000000.00, result.maleGroupOutput, 0);
+		Assert.assertEquals(9000000.00, result.maleGroupOutput, 0);
 		Assert.assertEquals(3000000.00, result.femaleGroupOutput, 0);
 	}
-	
+
 	@Test
 	public void givenNewEmployee_WhenAdded_ShouldSyncWithDB() throws CustomJDBCException {
 		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
 		employeePayrollService.addEmployeeToPayroll("Mark", 5000000.00, LocalDate.now(), "M", 1, "Capgemini", 3);
 		boolean result = employeePayrollService.checkEmployeePayrollInSyncWithDB("Mark");
 		Assert.assertTrue(result);
+	}
+
+	@Test
+	public void givenEmployee_WhenDeleted_ShouldSyncWithDB() throws CustomJDBCException {
+		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
+		employeePayrollService.deleteEmployeeFromPayroll("Mark");
+		boolean result = employeePayrollService.checkEmployeeDeleted("Mark");
+		Assert.assertFalse(result);
 	}
 }

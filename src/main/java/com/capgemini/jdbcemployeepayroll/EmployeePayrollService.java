@@ -13,7 +13,7 @@ public class EmployeePayrollService {
 	public EmployeePayrollService() {
 		this.employeePayrollDBService = EmployeePayrollDBService.getInstance();
 	}
-	
+
 	public List<EmployeePayrollData> readEmployeePayrollData(IOService ioService) throws CustomJDBCException {
 		if(ioService.equals(IOService.DB_IO))
 			this.employeePayrollList = employeePayrollDBService.readData();
@@ -51,5 +51,18 @@ public class EmployeePayrollService {
 
 	public void addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender, int companyId, String companyName, int departmentId) throws CustomJDBCException {
 		employeePayrollList.add(employeePayrollDBService.addEmployeeToPayroll(name, salary, startDate, gender, companyId, companyName, departmentId));
+	}
+
+	public void deleteEmployeeFromPayroll(String name) throws CustomJDBCException {
+		employeePayrollList.remove(employeePayrollDBService.deleteEmployeeFromPayroll(name));
+	}
+
+	public boolean checkEmployeeDeleted(String employeeName) throws CustomJDBCException {
+		boolean listCheck = employeePayrollList.stream().anyMatch(employee -> employee.name.equals(employeeName));
+		boolean databaseCheck = employeePayrollDBService.checkIfEmployeeActive(employeeName);
+		if(listCheck == false && databaseCheck == false)
+			return false;
+		else 
+			return true;
 	}
 }

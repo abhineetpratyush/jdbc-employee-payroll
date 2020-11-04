@@ -78,26 +78,9 @@ public class EmployeePayrollDBService {
 			resultSet.next();
 			int referenceEmployeeId = resultSet.getInt("id");
 			resultSet.absolute(0);
-					while (resultSet.next()) {
-						int id = resultSet.getInt("id");
-						if(id != referenceEmployeeId) {
-							int rowNumber = resultSet.getRow() - 1;
-							resultSet.absolute(rowNumber);
-							int employeeId = resultSet.getInt("id");
-							String employeeName = resultSet.getString("name");
-							String gender = resultSet.getString("gender");
-							double salary = resultSet.getDouble("salary");
-							LocalDate start = resultSet.getDate("start").toLocalDate();
-							String companyName = resultSet.getString("company_name");
-							int companyId = resultSet.getInt("company_id");
-							employeePayrollList.add(new EmployeePayrollData(employeeId, employeeName, gender, salary, start, companyName, companyId, departmentNames));
-							referenceEmployeeId = id;
-							departmentNames.clear();
-						}
-						else {
-							departmentNames.add(resultSet.getString("department_name"));
-						}
-					}
+			while (resultSet.next()) {
+				int id = resultSet.getInt("id");
+				if(id != referenceEmployeeId) {
 					int rowNumber = resultSet.getRow() - 1;
 					resultSet.absolute(rowNumber);
 					int employeeId = resultSet.getInt("id");
@@ -108,6 +91,23 @@ public class EmployeePayrollDBService {
 					String companyName = resultSet.getString("company_name");
 					int companyId = resultSet.getInt("company_id");
 					employeePayrollList.add(new EmployeePayrollData(employeeId, employeeName, gender, salary, start, companyName, companyId, departmentNames));
+					referenceEmployeeId = id;
+					departmentNames.clear();
+				}
+				else {
+					departmentNames.add(resultSet.getString("department_name"));
+				}
+			}
+			int rowNumber = resultSet.getRow() - 1;
+			resultSet.absolute(rowNumber);
+			int employeeId = resultSet.getInt("id");
+			String employeeName = resultSet.getString("name");
+			String gender = resultSet.getString("gender");
+			double salary = resultSet.getDouble("salary");
+			LocalDate start = resultSet.getDate("start").toLocalDate();
+			String companyName = resultSet.getString("company_name");
+			int companyId = resultSet.getInt("company_id");
+			employeePayrollList.add(new EmployeePayrollData(employeeId, employeeName, gender, salary, start, companyName, companyId, departmentNames));
 			return employeePayrollList;
 		} catch (SQLException e) {
 			throw new CustomJDBCException(ExceptionType.RESULT_SET_PROBLEM);
@@ -254,7 +254,7 @@ public class EmployeePayrollDBService {
 				if(resultSet.next()) employeeId = resultSet.getInt(1);
 				resultSet.close();
 			}
-			
+
 		} catch (SQLException e) {
 			try {
 				connection.rollback();
@@ -315,6 +315,84 @@ public class EmployeePayrollDBService {
 				}
 		}
 		return employeePayrollData;
+	}
+
+	public Object deleteEmployeeFromPayroll(String name) throws CustomJDBCException {
+		Connection connection = null;
+		EmployeePayrollData employeePayrollData = null;
+		List<EmployeePayrollData> payrollList = new ArrayList<>();
+		connection = this.getConnection();
+		try {
+			connection.setAutoCommit(false);
+		} catch (SQLException e1) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_SET_AUTO_COMMIT);
+		}
+		try(Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)){
+			String sqlOne = String.format("select * from employee_payroll inner join company_details on "
+					+ "employee_payroll.company_id = company_details.company_id inner join "
+					+ "department_employee on employee_payroll.id = department_employee.employee_id "
+					+ "inner join department on department.department_id = "
+					+ "department_employee.department_id where name = '%s'", name);
+			ResultSet resultSetOne = statement.executeQuery(sqlOne);
+			payrollList = getEmployeePayrollListFromResultSet(resultSetOne);
+			String sqlTwo = String.format("delete from department_employee where employee_id = %s", payrollList.get(0).id);
+			resultSetOne.close();
+			statement.executeUpdate(sqlTwo);
+		} catch (SQLException e) {
+			try {
+				connection.rollback();
+			} catch (SQLException e1) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
+			}
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_DELETE_RECORD);
+		}
+		try(Statement statement = connection.createStatement()){
+			String sql = String.format("update employee_payroll set is_active = false where id = %s", payrollList.get(0).id);
+			int rowsAffected = statement.executeUpdate(sql);
+			if(rowsAffected == 1) {
+				employeePayrollData = new EmployeePayrollData(payrollList.get(0).id, payrollList.get(0).name, payrollList.get(0).gender,
+						payrollList.get(0).salary, payrollList.get(0).startDate, payrollList.get(0).companyName, 
+						payrollList.get(0).companyId, payrollList.get(0).departmentNames);
+			}
+		} catch(SQLException e) {
+			try {
+				connection.rollback();
+			} catch (SQLException e1) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
+			}
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_DELETE_RECORD);
+		}
+
+		try {
+			connection.commit();
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_COMMIT);
+		} finally {
+			if(connection != null)
+				try {
+					connection.close();
+				} catch (SQLException e) {
+					throw new CustomJDBCException(ExceptionType.UNABLE_TO_CLOSE_CONNECTION);
+				}
+		}
+		return employeePayrollData;
+	}
+
+	public boolean checkIfEmployeeActive(String employeeName) throws CustomJDBCException {
+		Connection connection = this.getConnection();
+		boolean status;
+		try {
+			Statement statement = connection.createStatement();
+			String sql = String.format("select is_active from employee_payroll where name = '%s'", employeeName);
+			ResultSet resultSet = statement.executeQuery(sql);
+			resultSet.next();
+			int isActive = resultSet.getInt("is_active");
+			status = (isActive == 0) ? false  : true;  
+		} catch (SQLException e) {
+			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
+		}
+		return status;
+
 	}	
 }
 
