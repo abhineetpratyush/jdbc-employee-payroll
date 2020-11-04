@@ -235,7 +235,7 @@ public class EmployeePayrollDBService {
 		return employeePayrollData;
 	}
 
-	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender, int companyId) throws CustomJDBCException  {
+	public EmployeePayrollData addEmployeeToPayroll(String name, double salary, LocalDate startDate, String gender, int companyId, String companyName, int departmentId) throws CustomJDBCException  {
 		int employeeId = -1;
 		Connection connection = null;
 		EmployeePayrollData employeePayrollData = null;
@@ -252,7 +252,9 @@ public class EmployeePayrollDBService {
 			if(rowAffected == 1) {
 				ResultSet resultSet = statement.getGeneratedKeys();
 				if(resultSet.next()) employeeId = resultSet.getInt(1);
+				resultSet.close();
 			}
+			
 		} catch (SQLException e) {
 			try {
 				connection.rollback();
@@ -266,12 +268,31 @@ public class EmployeePayrollDBService {
 			double taxablePay = salary - deductions;
 			double tax = taxablePay * 0.1;
 			double netPay = salary - tax;
-			String sql = String.format("insert into payroll_details " + 
+			String sqlOne = String.format("insert into payroll_details " + 
 					"(employee_id, basic_pay, deductions, taxable_pay, tax, net_pay) values " +
 					"(%s, %s, %s, %s, %s, %s)", employeeId, salary, deductions, taxablePay, tax, netPay);
+			statement.executeUpdate(sqlOne);
+		} catch(SQLException e) {
+			try {
+				connection.rollback();
+			} catch (SQLException e1) {
+				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
+			}
+			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
+		}
+		try(Statement statement = connection.createStatement()){
+			String sql = String.format("insert into department_employee " + 
+					" values " +
+					"(%s, %s)", departmentId, employeeId);
 			int rowAffected = statement.executeUpdate(sql);
 			if(rowAffected == 1) {
-				employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate);
+				String sqlTwo = String.format("select department_name from department where department_id = %s", departmentId);
+				ResultSet resultSet = statement.executeQuery(sqlTwo);
+				resultSet.next();
+				List<String> departmentNames = new ArrayList<>();
+				String departmentName = resultSet.getString("department_name");
+				departmentNames.add(departmentName);
+				employeePayrollData = new EmployeePayrollData(employeeId, name, gender, salary, startDate, companyName, companyId, departmentNames);
 			}
 		} catch(SQLException e) {
 			try {
@@ -280,7 +301,7 @@ public class EmployeePayrollDBService {
 				throw new CustomJDBCException(ExceptionType.UNABLE_TO_ROLLBACK);
 			}
 			throw new CustomJDBCException(ExceptionType.UNABLE_TO_ADD_RECORD_TO_DB);
-		} 
+		}
 		try {
 			connection.commit();
 		} catch (SQLException e) {
