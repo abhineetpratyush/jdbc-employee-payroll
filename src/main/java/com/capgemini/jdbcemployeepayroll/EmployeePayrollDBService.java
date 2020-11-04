@@ -392,19 +392,5 @@ public class EmployeePayrollDBService {
 			throw new CustomJDBCException(ExceptionType.SQL_EXCEPTION);
 		}
 		return status;
-
 	}	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
