@@ -55,12 +55,4 @@ public class JDBCEmployeePayrollTest {
 		Assert.assertEquals(4000000.00, result.maleGroupOutput, 0);
 		Assert.assertEquals(3000000.00, result.femaleGroupOutput, 0);
 	}
-	
-//	@Test
-//	public void givenNewEmployee_WhenAdded_ShouldSyncWithDB() throws CustomJDBCException {
-//		employeePayrollService.readEmployeePayrollData(IOService.DB_IO);
-//		employeePayrollService.addEmployeeToPayroll("Mark", 5000000.00, LocalDate.now(), "M", 1);
-//		boolean result = employeePayrollService.checkEmployeePayrollInSyncWithDB("Mark");
-//		Assert.assertTrue(result);
-//	}
 }
